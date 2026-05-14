@@ -407,4 +407,107 @@ SELECT DISTINCT studentID
 FROM notifications
 WHERE notificationType = 'Placement'
 AND createdAt >= NOW() - INTERVAL '7 days';
-```git add .
+```
+# Stage 4 - Performance Improvements
+
+## Problem
+
+The database is getting overwhelmed because notifications are fetched from the database on every page load for every student.
+
+This increases:
+
+- Database read load
+- Response latency
+- Server resource consumption
+- User wait time
+
+---
+
+## Proposed Solutions
+
+### 1. Redis Caching
+
+Frequently accessed notifications can be cached using Redis.
+
+### Working
+
+- Notifications are first checked in Redis cache
+- If cache exists, data is returned immediately
+- Otherwise, data is fetched from the database and stored in Redis
+
+### Advantages
+
+- Extremely fast read performance
+- Reduced database load
+- Lower response times
+
+### Tradeoffs
+
+- Cache invalidation complexity
+- Temporary stale data possibility
+- Additional infrastructure cost
+
+---
+
+## 2. Pagination
+
+Notifications should be fetched in smaller batches instead of loading all notifications together.
+
+### Advantages
+
+- Reduced payload size
+- Faster API response
+- Improved frontend performance
+
+### Tradeoffs
+
+- Multiple API calls required
+- Slightly increased frontend complexity
+
+---
+
+## 3. Real-Time Push Mechanism
+
+Instead of polling notifications repeatedly, WebSockets can push notifications instantly.
+
+### Advantages
+
+- Reduces unnecessary API calls
+- Better real-time experience
+- Lower database read frequency
+
+### Tradeoffs
+
+- Persistent connection management required
+- Increased server-side complexity
+
+---
+
+## 4. Lazy Loading
+
+Older notifications should load only when users scroll further.
+
+### Advantages
+
+- Faster initial page load
+- Reduced unnecessary data fetching
+
+### Tradeoffs
+
+- Slight frontend implementation complexity
+
+---
+
+## 5. Read Replicas
+
+Read-heavy notification queries can be distributed across read replicas.
+
+### Advantages
+
+- Reduced load on primary database
+- Improved scalability
+
+### Tradeoffs
+
+- Replication lag
+- Increased infrastructure cost
