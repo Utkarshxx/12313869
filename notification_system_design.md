@@ -305,3 +305,106 @@ SET is_read = true
 WHERE student_id = '1042'
 AND notification_id = '501';
 ```
+# Stage 3 - Query Optimization
+
+## Query Analysis
+
+### Given Query
+
+```sql
+SELECT * FROM notifications
+WHERE studentID = 1042
+AND isRead = false
+ORDER BY createdAt ASC;
+```
+
+### Is the Query Accurate?
+
+Yes, the query correctly fetches unread notifications for a student and sorts them based on creation time.
+
+However, performance may degrade significantly as data volume increases.
+
+---
+
+## Why is the Query Slow?
+
+The query becomes slow because:
+
+- Large table scans occur when indexes are missing
+- Sorting operations on large datasets are expensive
+- Filtering unread notifications for millions of rows increases computation cost
+
+With 5,000,000 notifications, a full table scan becomes inefficient.
+
+---
+
+## Optimized Solution
+
+A composite index should be created on:
+
+```sql
+(studentID, isRead, createdAt)
+```
+
+### Optimized Index
+
+```sql
+CREATE INDEX idx_notifications_student_read_created
+ON notifications(studentID, isRead, createdAt);
+```
+
+This helps the database:
+
+- Quickly locate student notifications
+- Efficiently filter unread records
+- Improve sorting performance
+
+---
+
+## Computational Cost
+
+### Without Index
+
+Approximate Complexity:
+
+```txt
+O(n)
+```
+
+because the database scans large portions of the table.
+
+### With Composite Index
+
+Approximate Complexity:
+
+```txt
+O(log n)
+```
+
+which significantly improves query performance.
+
+---
+
+## Should We Add Indexes on Every Column?
+
+No, adding indexes on every column is not effective.
+
+### Problems with Excessive Indexing
+
+- Increased storage usage
+- Slower INSERT and UPDATE operations
+- Higher maintenance overhead
+- Unused indexes waste resources
+
+Indexes should only be added for frequently queried columns.
+
+---
+
+## Query to Find Students Who Received Placement Notifications in Last 7 Days
+
+```sql
+SELECT DISTINCT studentID
+FROM notifications
+WHERE notificationType = 'Placement'
+AND createdAt >= NOW() - INTERVAL '7 days';
+```git add .
