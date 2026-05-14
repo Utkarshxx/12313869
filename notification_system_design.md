@@ -161,3 +161,147 @@ The platform will use WebSockets for real-time notification delivery.
 ### Alternative
 
 Server Sent Events (SSE) can also be used for one-way server-to-client notification streaming.
+
+# Stage 2 - Database Design
+
+## Recommended Database
+
+PostgreSQL is recommended for the notification platform.
+
+### Reasons for Choosing PostgreSQL
+
+- Strong relational consistency
+- Efficient indexing support
+- Supports complex filtering and querying
+- Reliable transaction handling
+- Better scalability for structured notification data
+- ACID compliance ensures data integrity
+
+---
+
+## Database Schema
+
+### Students Table
+
+| Column | Type |
+|--------|------|
+| student_id | UUID |
+| name | VARCHAR |
+| email | VARCHAR |
+| department | VARCHAR |
+
+---
+
+### Notifications Table
+
+| Column | Type |
+|--------|------|
+| notification_id | UUID |
+| notification_type | ENUM |
+| message | TEXT |
+| created_at | TIMESTAMP |
+
+---
+
+### Student_Notifications Table
+
+| Column | Type |
+|--------|------|
+| id | UUID |
+| student_id | UUID |
+| notification_id | UUID |
+| is_read | BOOLEAN |
+| delivered_at | TIMESTAMP |
+
+---
+
+## Potential Problems at Scale
+
+As notification volume increases, the following problems may occur:
+
+- Slow query performance
+- Increased database load
+- High read latency
+- Storage growth
+- Slower sorting and filtering operations
+
+---
+
+## Solutions for Scalability
+
+### Indexing
+
+Indexes can be added on:
+
+- student_id
+- is_read
+- created_at
+- notification_type
+
+### Pagination
+
+Pagination reduces large data fetches and improves response time.
+
+### Database Partitioning
+
+Notifications can be partitioned by:
+
+- date
+- notification type
+
+### Read Replicas
+
+Read replicas can handle heavy read traffic while reducing load on the primary database.
+
+### Archiving
+
+Old notifications can be archived to separate storage systems to reduce database size.---
+
+## Sample SQL Queries
+
+### Fetch Notifications for a Student
+
+```sql
+SELECT *
+FROM student_notifications sn
+JOIN notifications n
+ON sn.notification_id = n.notification_id
+WHERE sn.student_id = '1042'
+ORDER BY n.created_at DESC;
+```
+
+---
+
+### Fetch Unread Notifications
+
+```sql
+SELECT *
+FROM student_notifications sn
+JOIN notifications n
+ON sn.notification_id = n.notification_id
+WHERE sn.student_id = '1042'
+AND sn.is_read = false
+ORDER BY n.created_at DESC;
+```
+
+---
+
+### Fetch Notifications by Type
+
+```sql
+SELECT *
+FROM notifications
+WHERE notification_type = 'Placement'
+ORDER BY created_at DESC;
+```
+
+---
+
+### Mark Notification as Read
+
+```sql
+UPDATE student_notifications
+SET is_read = true
+WHERE student_id = '1042'
+AND notification_id = '501';
+```
