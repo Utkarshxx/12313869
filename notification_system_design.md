@@ -511,3 +511,109 @@ Read-heavy notification queries can be distributed across read replicas.
 
 - Replication lag
 - Increased infrastructure cost
+# Stage 5 - Large Scale Notification Delivery
+
+## Problems with Current Implementation
+
+The current implementation processes notifications sequentially for every student.
+
+### Shortcomings
+
+- Slow execution for 50,000 students
+- Email failures can interrupt processing
+- No retry mechanism
+- High response time
+- Poor scalability
+- Single-threaded execution bottleneck
+- Risk of partial notification delivery
+
+---
+
+## What Happens if Email Fails for 200 Students?
+
+If email delivery fails midway:
+
+- Some students receive notifications
+- Some students do not receive notifications
+- System consistency becomes unreliable
+- Manual retry becomes difficult
+
+This creates an inconsistent user experience.
+
+---
+
+## Recommended Architecture
+
+An asynchronous queue-based architecture should be used.
+
+### Technologies
+
+- RabbitMQ
+- Kafka
+- BullMQ
+
+---
+
+## Improved Flow
+
+1. HR clicks "Notify All"
+2. Notification request is added to a queue
+3. Worker services process notifications asynchronously
+4. Separate workers handle:
+   - Email delivery
+   - Database storage
+   - Real-time push notifications
+5. Failed jobs are retried automatically
+
+---
+
+## Why Queue-Based Processing?
+
+### Advantages
+
+- Faster processing
+- Better scalability
+- Retry support
+- Failure isolation
+- Parallel execution
+- Improved reliability
+
+---
+
+## Should Email Sending and Database Saving Happen Together?
+
+No, both operations should be decoupled.
+
+### Reason
+
+Database persistence is critical for system consistency, while email delivery is an external service operation that may fail independently.
+
+Separating these operations improves fault tolerance and reliability.
+
+---
+
+## Revised Pseudocode
+
+```python
+function notify_all(student_ids, message):
+
+    create_notification_job(student_ids, message)
+
+worker process_notification_job(job):
+
+    for student_id in job.student_ids:
+
+        save_to_db(student_id, job.message)
+
+        enqueue_email_job(student_id, job.message)
+
+        enqueue_push_notification(student_id, job.message)
+
+worker send_email(job):
+
+    try:
+        send_email_api(job.student_id, job.message)
+
+    except Exception:
+        retry_job(job)
+```
